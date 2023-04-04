@@ -1,0 +1,1009 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+##
+global:
+  # imageRegistry: myRegistryName
+  # imagePullSecrets:
+  #   - myRegistryKeySecretName
+  # storageClass: myStorageClass
+
+## String to partially override kube-state-metrics.fullname template (will maintain the release name)
+##
+# nameOverride:
+
+## String to fully override kube-state-metrics.fullname template
+##
+# fullnameOverride:
+
+## Add labels to all the deployed resources
+##
+commonLabels: 
+  app: <--name-of-app-->
+
+## Add annotations to all the deployed resources
+##
+commonAnnotations: 
+  linkerd.io/inject: enabled
+
+## Deployment pod host aliases
+## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+##
+hostAliases: []
+
+## updateStrategy
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#update-strategies
+##
+updateStrategy: {}
+  ## StrategyType
+  ## Can be set to RollingUpdate or OnDelete
+  ##
+  ## type: RollingUpdate
+
+## Role Based Access
+## ref: https://kubernetes.io/docs/admin/authorization/rbac/
+##
+rbac:
+  create: false
+
+  ## RBAC API version
+  ##
+  apiVersion: v1beta1
+
+  ## Podsecuritypolicy
+  ##
+  pspEnabled: false
+
+## Service account for kube-state-metrics to use.
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+##
+serviceAccount:
+  ## Specifies whether a ServiceAccount should be created
+  ##
+  create: false
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the kube-state-metrics.fullname template
+  # name:
+  ## automountServiceAccountToken: true
+
+## Image parameters (will need to update these)
+## @param image.registry image registry
+## @param image.repository image repository
+## @param image.tag image tag (immutable tags are recommended)
+## @param image.pullPolicy image pull policy
+## @param image.pullSecrets image pull secrets
+## @param image.debug Enable image debug mode
+##
+image:
+  registry: <--name-of-acr-->.azurecr.io
+  repository: <--name-of-image-->
+  tag: latest
+  ## Specify a imagePullPolicy
+  ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
+  ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
+  ##
+  pullPolicy: IfNotPresent
+  ## Optionally specify an array of imagePullSecrets.
+  ## Secrets must be manually created in the namespace.
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  ## e.g:
+  ## pullSecrets:
+  ##   - myRegistryKeySecretName
+  ##
+  pullSecrets: []
+  ## Enable debug mode
+  ##
+  debug: false
+
+## Additional command line arguments to pass to kube-state-metrics
+##
+extraArgs: {}
+
+## Comma-separated list of namespaces to be enabled. Defaults to all namespaces
+# namespaces: ""
+
+## Add init containers to the wavefront-prometheus-storage-adapter pods.
+## Example:
+## initContainers:
+##   - name: your-image-name
+##     image: your-image
+##     imagePullPolicy: Always
+##     ports:
+##       - name: portname
+##         containerPort: 1234
+## @param initContainers  Add additional init containers to the Adapter pods
+##
+initContainers: {}
+
+## SecurityContext configuration
+##
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  privileged: false
+  allowPrivilegeEscalation: true
+  readOnlyRootFilesystem: true
+
+## Configure the ingress resource that allows you to access the installation
+## ref: https://kubernetes.io/docs/user-guide/ingress/
+##
+ingress:
+  ## @param ingress.enabled Enable ingress record generation for frontend
+  ##
+  enabled: true
+  ## @param ingress.apiVersion Force Ingress API version (automatically detected if not set)
+  ##
+  apiVersion: ""
+  ## @param ingress.annotations Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
+  ## For a full list of possible ingress annotations, please see
+  ## ref: https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-issuer
+  ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
+  ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+  ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+  ##
+  ingressClassName: "internal"
+  ## @param ingress.hostname Default host for the ingress record
+  ##
+  hostname: <--name-of-app-->.<--name-of-domain-->.azure.io
+  ## @param ingress.path Default path for the ingress record
+  ## NOTE: You may need to set this to '/*' in order to use this with ALB ingress controllers
+  ##
+  path: /<--name-of-app-->
+  ## @param ingress.pathType Ingress path type
+  ##
+  pathType: ImplementationSpecific
+  ## @param ingress.tls Enable TLS configuration for the host defined at `ingress.hostname` parameter
+  ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" .Values.ingress.hostname }}`
+  ## You can:
+  ##   - Use the `ingress.secrets` parameter to create this TLS secret
+  ##   - Relay on cert-manager to create it by setting the corresponding annotations
+  ##   - Relay on Helm to create self-signed certificates by setting `ingress.selfSigned=true`
+  ##
+  tls: true
+  ## @param ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
+  ##
+  selfSigned: false
+  ## @param ingress.extraHosts An array with additional hostname(s) to be covered with the ingress record
+  ## e.g:
+  ## extraHosts:
+  ##   - name: frontend.local
+  ##     path: /
+  ##
+  extraHosts: []
+  ## @param ingress.extraPaths An array with additional arbitrary paths that may need to be added to the ingress under the main host
+  ## e.g:
+  ## extraPaths:
+  ##    - path: /testpath
+  ##      pathType: Prefix
+  ##      backend:
+  ##        service:
+  ##         name: test
+  ##          port:
+  ##            number: 80
+  ##
+  extraPaths: []
+  ## @param ingress.extraTls TLS configuration for additional hostname(s) to be covered with this ingress record
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
+  ## e.g:
+  ## extraTls:
+  ## - hosts:
+  ##     - frontend.local
+  ##   secretName: frontend.local-tls
+  ##
+  extraTls: []
+  ## @param ingress.secrets Custom TLS certificates as secrets
+  ## NOTE: 'key' and 'certificate' are expected in PEM format
+  ## NOTE: 'name' should line up with a 'secretName' set further up
+  ## If it is not set and you're using cert-manager, this is unneeded, as it will create a secret for you with valid certificates
+  ## If it is not set and you're NOT using cert-manager either, self-signed certificates will be created valid for 365 days
+  ## It is also possible to create and manage the certificates outside of this helm chart
+  ## Please see README.md for more information
+  ## e.g:
+  ## secrets:
+  ##   - name: frontend.local-tls
+  ##     key: |-
+  ##       -----BEGIN RSA PRIVATE KEY-----
+  ##       ...
+  ##       -----END RSA PRIVATE KEY-----
+  ##     certificate: |-
+  ##       -----BEGIN CERTIFICATE-----
+  ##       ...
+  ##       -----END CERTIFICATE-----
+  ##
+  secrets: []
+
+
+
+## Service configuration
+##
+##
+service:
+  ## @param service.type service type
+  ##
+  type: ClusterIP
+  ports:
+    ## HTTP Port (must match containerPort and targetPort and port exposed on the dockerfile)
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 443
+      protocol: TCP
+  ## @param service.clusterIP service Cluster IP
+  ## e.g.:
+  ## clusterIP: None
+  ##
+  clusterIP: ""
+  ## @param service.loadBalancerIP service Load Balancer IP
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+  ##
+  loadBalancerIP: ""
+  ## @param service.loadBalancerSourceRanges service Load Balancer sources
+  ## ref: https://v1-17.docs.kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+  ## e.g:
+  ## loadBalancerSourceRanges:
+  ##   - 10.10.10.0.35
+  ##
+  loadBalancerSourceRanges: []
+  ## @param service.externalTrafficPolicy service external traffic policy
+  ## ref https://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+  ##
+  externalTrafficPolicy: Local
+  ## @param frontend.service.annotations Additional custom annotations for frontend service
+  ##
+  ## Specify the externalIP value ClusterIP service type.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-ips
+  externalIPs: []
+  ## Provide any additional annotations which may be required. This can be used to
+  ## set the LoadBalancer service type to internal only.
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#internal-load-balancer
+  annotations: {}
+  ## Provide any additional service labels
+  ##
+  labels: {}
+
+# Enable hostNetwork mode
+hostNetwork: false
+
+## Priority class assigned to the Pods
+##
+priorityClassName: ""
+
+
+
+## Container Port and Resource requests and limits
+## ref: https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+## is the targetPort on the service matching the containerPort in the pod?
+container:
+  ports:
+    - containerPort: 80
+      name: http
+      protocol: UDP
+    - containerPort: 443
+      name: https
+  ## Resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ##
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  resources:
+    limits:
+      cpu: "0.5"
+      memory: "512Mi"
+    requests:
+      cpu: "0.25"
+      memory: "96Mi"
+
+  ## @param metrics.extraEnvVars Array containing extra environment variables
+  ##
+  extraEnvVars: []
+
+  ## @param metrics.extraEnvVarsCM ConfigMap containing extra environment variables
+  ##
+  extraEnvVarsCM: ""
+  ## @param metrics.extraEnvVarsSecret Secret containing extra environment variables (in case of sensitive data)
+  ##
+  extraEnvVarsSecret: ""
+  ## @param metrics.resources Metrics exporter resource requests and limits
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  ##
+
+## Number of replicas
+##
+replicaCount: 3
+
+# Autoscaling configuration
+## ref: https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
+## @param autoscaling.enabled Enable Horizontal POD autoscaling
+## @param autoscaling.minReplicas Minimum number of replicas
+## @param autoscaling.maxReplicas Maximum number of replicas
+## @param autoscaling.targetCPU Target CPU utilization percentage
+## @param autoscaling.targetMemory Target Memory utilization percentage
+##
+autoscaling:
+  apiVersion: autoscaling/v2
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 6
+  targetCPU: 80
+  targetMemory: ""
+
+
+## Pod labels
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+##
+podLabels: {}
+
+## Pod annotations
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+##
+podAnnotations: {}
+
+## minReadySeconds to avoid killing pods before we are ready
+##
+minReadySeconds: 0
+
+## Pod affinity preset
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+## Allowed values: soft, hard
+##
+podAffinityPreset: ""
+
+## Pod anti-affinity preset
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+## Allowed values: soft, hard
+##
+podAntiAffinityPreset: ""
+
+## Node affinity preset
+## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+## Allowed values: soft, hard
+##
+nodeAffinityPreset:
+  ## Node affinity type
+  ## Allowed values: soft, hard
+  ##
+  type: ""
+  ## Node label key to match
+  ## E.g.
+  ## key: "kubernetes.io/e2e-az-name"
+  ##
+  key: ""
+  ## Node label values to match
+  ## E.g.
+  ## values:
+  ##   - e2e-az1
+  ##   - e2e-az2
+  ##
+  values: []
+
+## Affinity for pod assignment. Evaluated as a template.
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+## Note: podAffinityPreset, podAntiAffinityPreset, and nodeAffinityPreset will be ignored when it's set
+##
+affinity: {}
+
+nodeName: ""
+
+## Node labels for pod assignment. Evaluated as a template.
+## ref: https://kubernetes.io/docs/user-guide/node-selection/
+##
+nodeSelector: {}
+  # kubernetes.io/os: windows
+  # lnrs.io/tier: external-pool
+
+## Tolerations for pod assignment. Evaluated as a template.
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: {}
+  # - key: node.kubernetes.io/os
+  #   operator: "Equal"
+  #   value: windows
+
+
+## Configure extra options for liveness probe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+## @param livenessProbe.enabled Enable livenessProbe
+## @param livenessProbe.httpGet.path Request path for livenessProbe
+## @param livenessProbe.httpGet.port Port for livenessProbe
+## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+## @param livenessProbe.periodSeconds Period seconds for livenessProbe
+## @param livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
+## @param livenessProbe.successThreshold Success threshold for livenessProbe
+##
+livenessProbe:
+  enabled: false
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 300
+  periodSeconds: 1
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+## Configure extra options for readiness probe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+## @param readinessProbe.enabled Enable readinessProbe
+## @param readinessProbe.httpGet.path Request path for readinessProbe
+## @param readinessProbe.httpGet.port Port for readinessProbe
+## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+## @param readinessProbe.successThreshold Success threshold for readinessProbe
+##
+readinessProbe:
+  enabled: false
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+  successThreshold: 1
+
+## Configure extra options for startup probe
+## When enabling this, make sure to set initialDelaySeconds to 0 for livenessProbe and readinessProbe
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+## @param startupProbe.enabled Enable startupProbe
+## @param startupProbe.httpGet.path Request path for startupProbe
+## @param startupProbe.httpGet.port Port for startupProbe
+## @param startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+## @param startupProbe.periodSeconds Period seconds for startupProbe
+## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
+## @param startupProbe.failureThreshold Failure threshold for startupProbe
+## @param startupProbe.successThreshold Success threshold for startupProbe
+##
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /auth/
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 1
+  failureThreshold: 60
+  successThreshold: 1
+
+## ServiceMonitor configuration
+##
+serviceMonitor:
+  enabled: false
+  ## Namespace in which Prometheus is running
+  ##
+  # namespace: monitoring
+
+  ## The name of the label on the target service to use as the job name in prometheus
+  # jobLabel:
+
+  ## Interval at which metrics should be scraped.
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  ##
+  # interval: 10s
+
+  ## Timeout after which the scrape is ended
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  ##
+  # scrapeTimeout: 10s
+
+  ## ServiceMonitor selector labels
+  ## ref: https://github.com/bitnami/charts/tree/master/bitnami/prometheus-operator#prometheus-configuration
+  ##
+  # selector:
+  #   prometheus: my-prometheus
+
+  ## Honor metric labels
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
+  ##
+  # honorLabels: false
+
+  ## Relabeling (before scrape)
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+  ##
+  # relabelings: []
+
+  ## Metric relabeling
+  ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
+  ##
+  # metricRelabelings: []
+
+## HAProxy Pod Disruption Budget configuration
+## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+## @param pdb.create Enable a Pod Disruption Budget creation
+## @param pdb.minAvailable Minimum number/percentage of pods that should remain scheduled
+## @param pdb.maxUnavailable Maximum number/percentage of pods that may be made unavailable
+##
+pdb:
+  create: false
+  minAvailable: 1
+  maxUnavailable: ""
+
+## Persistence Parameters
+## ref: https://kubernetes.io/docs/user-guide/persistent-volumes/
+##
+persistence:
+  ## @param persistence.enabled Enable persistence using Persistent Volume Claims
+  ##
+  enabled: false
+  ## @param persistence.storageClass Persistent Volume storage class
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is set, choosing the default provisioner
+  ##
+  storageClass: ""
+  ## @param persistence.annotations Additional custom annotations for the PVC
+  ##
+  annotations: {}
+  ## @param persistence.accessModes [array] Persistent Volume access modes
+  ##
+  accessModes:
+    - ReadWriteOnce
+  ## @param persistence.size Persistent Volume size
+  ##
+  size: 8Gi
+  ## @param persistence.existingClaim The name of an existing PVC to use for persistence
+  ##
+  existingClaim: ""
+
+
+extraVolumeMounts: []
+# - name: "logs"
+#   mountPath: "/u/mbs_feeds_logs"
+
+extraVolumes: []
+# - name: "logs"
+#   hostPath:
+#     path: /logs
+
+
+## @param configuration [string] haproxy configuration
+## Taken from haproxytech/haproxy chart: https://github.com/haproxytech/helm-charts/tree/main/haproxy
+##
+configuration: "" #|
+  # global
+  #   log stdout format raw local0
+  #   maxconn 1024
+  # defaults
+  #   log global
+  #   timeout client 60s
+  #   timeout connect 60s
+  #   timeout server 60s
+  # frontend fe_main
+  #   bind :8080
+  #   default_backend be_main
+  # backend be_main
+  #   server web1 10.0.11.1:8080 check
+
+## @param existingConfigmap configmap with HAProxy configuration
+##
+existingConfigmap: ""
+
+
+## @section NetworkPolicy parameters
+
+## Add networkpolicies
+##
+networkPolicy:
+  ## @param networkPolicy.enabled Enable network policies
+  ## If ingress.enabled or metrics.enabled are true, configure networkPolicy.ingress and networkPolicy.metrics selectors respectively to allow communication
+  ##
+  enabled: false
+  ## @param networkPolicy.ingress.enabled Enable network policy for Ingress Proxies
+  ## @param networkPolicy.ingress.namespaceSelector Ingress Proxy namespace selector labels. These labels will be used to identify the Ingress Proxy's namespace.
+  ## @param networkPolicy.ingress.podSelector Ingress Proxy pods selector labels. These labels will be used to identify the Ingress Proxy pods.
+  ##
+  ingress:
+    enabled: false
+    ## e.g:
+    ## podSelector:
+    ##   label: ingress
+    ##
+    podSelector: {}
+    ## e.g:
+    ## namespaceSelector:
+    ##   label: ingress
+    ##
+    namespaceSelector: {}
+  ## @param networkPolicy.ingressRules.backendOnlyAccessibleByFrontend Enable ingress rule that makes the backend (mariadb) only accessible by frontend's pods.
+  ## @param networkPolicy.ingressRules.customBackendSelector Backend selector labels. These labels will be used to identify the backend pods.
+  ## @param networkPolicy.ingressRules.accessOnlyFrom.enabled Enable ingress rule that makes frontend only accessible from a particular origin
+  ## @param networkPolicy.ingressRules.accessOnlyFrom.namespaceSelector Namespace selector label that is allowed to access frontend. This label will be used to identified the allowed namespace(s).
+  ## @param networkPolicy.ingressRules.accessOnlyFrom.podSelector Pods selector label that is allowed to access frontend. This label will be used to identified the allowed pod(s).
+  ## @param networkPolicy.ingressRules.customRules Custom network policy ingress rule
+  ##
+  ingressRules:
+    ## database backend only can be accessed from frontend
+    ##
+    backendOnlyAccessibleByFrontend: false
+    customBackendSelector: {}
+    ## Allow only from the indicated:
+    ##
+    accessOnlyFrom:
+      enabled: false
+      ## e.g:
+      ## namespaceSelector:
+      ##   label: ingress
+      ##
+      namespaceSelector: {}
+      ## e.g:
+      ## podSelector:
+      ##   label: access
+      ##
+      podSelector: {}
+    ## custom ingress rules
+    ## e.g:
+    ## customRules:
+    ##   - from:
+    ##       - namespaceSelector:
+    ##           matchLabels:
+    ##             label: example
+    ##
+    customRules: {}
+  ## @param networkPolicy.egressRules.denyConnectionsToExternal Enable egress rule that denies outgoing traffic outside the cluster, except for DNS (port 53).
+  ## @param networkPolicy.egressRules.customRules Custom network policy rule
+  ##
+  egressRules:
+    ## Deny connections to external. This is not compatible with an external database.
+    ##
+    denyConnectionsToExternal: false
+    ## Additional custom egress rules
+    ## e.g:
+    ## customRules:
+    ##   - to:
+    ##       - namespaceSelector:
+    ##           matchLabels:
+    ##             label: example
+    ##
+    customRules: {}
+
+## Configuration section
+##
+secretConfiguration:
+  existingSecret: ""
+  ## e.g:
+  ## google:
+  ##   adminEmail: xxxx
+  ##   serviceAccountJson: xxxx
+  ##   existingSecret: google-secret
+  ## Alternatively, use an existing secret (see secret-google.yaml for required fields)
+  ##
+  ## @param configuration.google.enabled Enable Google service account
+  ## @param configuration.google.adminEmail Google admin email
+  ## @param configuration.google.serviceAccountJson Google Service account JSON
+  ## @param configuration.google.existingSecret Existing secret containing Google Service Account
+  ## @param configuration.cookieSecret OAuth cookie secret
+  ##
+  password: ""
+
+
+sealedSecrets:
+  ## @param sealedSecrets.enabled Enable sealed secrets
+  ##
+  enabled: false
+  ## @param sealedSecrets.existingSecret Existing secret containing sealed secrets
+  ##
+  sealedSecrets: ""
+
+
+## Enable diagnostic mode for commands
+##
+diagnosticMode:
+  ## @param diagnosticMode.enabled Enable diagnostic mode (all probes will be disabled and the command will be overridden)
+  ##
+  enabled: false
+  ## @param diagnosticMode.command Command to override all containers in the deployment
+  ##
+  command: []
+
+  ## @param diagnosticMode.args Args to override all containers in the deployment
+  ##
+  args: []
+
+## @section Cronjob parameters
+
+##  cronjob parameters
+##
+cronjob:
+  ## @param cronjob.enabled Enable  cronjob cron job
+  ##
+  enabled: false
+  ## @param cronjob.nameOverride String to partially override .cronjob.fullname
+  ##
+  nameOverride: ""
+  ## @param cronjob.fullnameOverride String to fully override .cronjob.fullname
+  ##
+  fullnameOverride: ""
+  ## @param cronjob.hooks [object] Whether to run job on selected hooks
+  ##
+  hooks:
+    install: false
+    upgrade: false
+  ## @param cronjob.dryRun Run cronjob in dry-run mode
+  ##
+  dryRun: false
+  ## @param cronjob.jobAnnotations Annotations to add to the job
+  ##
+  jobAnnotations: {}
+  ## @param cronjob.jobLabels Annotations to add to the job
+  ##
+  jobLabels: {}
+  ## @param cronjob.image.registry  cronjob image registry
+  ## @param cronjob.image.repository  cronjob image repository
+  ## @param cronjob.image.tag  cronjob image tag
+  ## @param cronjob.image.pullPolicy  cronjob image pull policy
+  ## @param cronjob.image.pullSecrets  cronjob image pull secrets
+  ##
+  image:
+    registry: <--name-of-registry-->.azurecr.io
+    repository: <--name-of-app-for-cronjob>
+    tag: <--name-of-tag-->
+    pullPolicy: IfNotPresent
+
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## @param cronjob.cronjob.schedule Schedule for the CronJob
+  ## @param cronjob.cronjob.concurrencyPolicy `Allow,Forbid,Replace` concurrent jobs
+  ## @param cronjob.cronjob.failedJobsHistoryLimit Specify the number of failed Jobs to keep
+  ## @param cronjob.cronjob.successfulJobsHistoryLimit Specify the number of completed Jobs to keep
+  ## @param cronjob.cronjob.jobRestartPolicy Control the Job restartPolicy
+  ## @param cronjob.cronjob.cronjobAnnotations Annotations to add to the cronjob
+  ## @param cronjob.cronjob.cronjobLabels Annotations to add to the cronjob
+  ## @param cronjob.cronjob.jobAnnotations Annotations to add to the job template
+  ## @param cronjob.cronjob.jobLabels Annotations to add to the job template
+  ##
+  cronjob:
+    ## At 10th minute of each hour monday-friday
+    schedule: "10 * * * 1-5"
+    concurrencyPolicy: Forbid
+    failedJobsHistoryLimit: "1"
+    successfulJobsHistoryLimit: "1"
+    jobRestartPolicy: OnFailure
+    cronjobAnnotations: {}
+    cronjobLabels: {}
+    jobAnnotations: {}
+    jobLabels: {}
+  ## Configure cronjob cronjob Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param cronjob.podSecurityContext.enabled Enabled cronjob jobs' Security Context
+  ## @param cronjob.podSecurityContext.fsGroup Set cronjob pod's Security Context fsGroup
+  ##
+  podSecurityContext:
+    enabled: true
+    fsGroup: 1001
+  ## Configure Container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param cronjob.containerSecurityContext.enabled Enabled cronjob containers' Security Context
+  ## @param cronjob.containerSecurityContext.runAsUser Set cronjob containers' Security Context runAsUser
+  ## @param cronjob.containerSecurityContext.runAsNonRoot Set cronjob containers' Security Context runAsNonRoot
+  ##
+  containerSecurityContext:
+    enabled: true
+    runAsUser: 1001
+    runAsNonRoot: true
+  ## @param cronjob.hostAliases cronjob pods host aliases
+  ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
+  ##
+  hostAliases: []
+  ## @param cronjob.podAnnotations Annotations to add to the pod
+  ##
+  podAnnotations: {}
+  ## @param cronjob.podLabels Extra labels to add to Pod
+  ##
+  podLabels: {}
+  ## @param cronjob.podAffinityPreset cronjob Pod affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAffinityPreset: ""
+  ## @param cronjob.podAntiAffinityPreset cronjob Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity
+  ##
+  podAntiAffinityPreset: ""
+  ## Node affinity preset
+  ## Ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#node-affinity
+  ## @param cronjob.nodeAffinityPreset.type cronjob Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`
+  ## @param cronjob.nodeAffinityPreset.key cronjob Node label key to match Ignored if `affinity` is set.
+  ## @param cronjob.nodeAffinityPreset.values cronjob Node label values to match. Ignored if `affinity` is set.
+  ##
+  nodeAffinityPreset:
+    type: ""
+    ## E.g.
+    ## key: "kubernetes.io/e2e-az-name"
+    ##
+    key: ""
+    ## E.g.
+    ## values:
+    ##   - e2e-az1
+    ##   - e2e-az2
+    ##
+    values: []
+  ## @param cronjob.affinity cronjob Affinity for pod assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
+  ##
+  affinity: {}
+  ## @param cronjob.nodeSelector cronjob Node labels for pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
+  ## @param cronjob.tolerations cronjob Tolerations for pod assignment
+  ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+  ## @param cronjob.topologySpreadConstraints Topology Spread Constraints for pod assignment spread across your cluster among failure-domains. Evaluated as a template
+  ## Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/#spread-constraints-for-pods
+  ##
+  topologySpreadConstraints: []
+  ## @param cronjob.priorityClassName cronjob Pods Priority Class Name
+  ##
+  priorityClassName: ""
+  ## @param cronjob.schedulerName Name of the k8s scheduler (other than default)
+  ## ref: https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/
+  ##
+  schedulerName: ""
+  ## cronjob resources requests and limits
+  ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
+  ## We usually recommend not to specify default resources and to leave this as a conscious
+  ## choice for the user. This also increases chances charts run on environments with little
+  ## resources, such as Minikube. If you do want to specify resources, uncomment the following
+  ## lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  ## @param cronjob.resources.limits The resources limits for the container
+  ## @param cronjob.resources.requests The requested resources for the container
+  ##
+  resources:
+    ## Example:
+    ## limits:
+    ##    cpu: 100m
+    ##    memory: 128Mi
+    limits: {}
+    ## Examples:
+    ## requests:
+    ##    cpu: 100m
+    ##    memory: 128Mi
+    requests: {}
+  ## cronjob configMaps
+  ##
+  configMaps:
+    ## @param cronjob.configMaps.action_file_yml Contents of the cronjob action_file.yml. Required if cronjob job is enabled.
+    ## For example, to delete indices older than 90 days:
+    ##
+    ## action_file_yml: |-
+    ##   ---
+    ##   actions:
+    ##     1:
+    ##       action: delete_indices
+    ##       description: "Clean up ES by deleting old indices"
+    ##       options:
+    ##         timeout_override:
+    ##         continue_if_exception: False
+    ##         disable_action: False
+    ##         ignore_empty_list: True
+    ##       filters:
+    ##       - filtertype: age
+    ##         source: name
+    ##         direction: older
+    ##         timestring: '%Y.%m.%d'
+    ##         unit: days
+    ##         unit_count: 90
+    ##         field:
+    ##         stats_result:
+    ##         epoch:
+    ##         exclude: False
+    ##
+    action_file_yml: ""
+    ## @param cronjob.configMaps.config_yml [string] Contents of the cronjob config.yml (overrides config)
+    ## e.g:
+    ## config_yml: |-
+    ##   ---
+    ##   client:
+    ##     hosts:
+    ##       - {{ template ".coordinating.fullname" . }}.{{ include "common.names.namespace" }}.svc.{{ .Values.clusterDomain }}
+    ##     port: {{ .Values.coordinating.service.port }}
+    ##
+    config_yml: ""
+  ## @param cronjob.command Override default container command (useful when using custom images)
+  ##
+  command: []
+
+  ## @param cronjob.args Override default container args (useful when using custom images)
+  ##
+  args: []
+  
+  ## @param cronjob.lifecycleHooks for the cronjob container(s) to automate configuration before or after startup
+  ##
+  lifecycleHooks: {}
+  ## @param cronjob.extraEnvVars Array with extra environment variables to add to cronjob nodes
+  ## e.g:
+  ## extraEnvVars:
+  ##   - name: FOO
+  ##     value: "bar"
+  ##
+  extraEnvVars: []
+  ## @param cronjob.extraEnvVarsCM Name of existing ConfigMap containing extra env vars for cronjob nodes
+  ##
+  extraEnvVarsCM: ""
+  ## @param cronjob.extraEnvVarsSecret Name of existing Secret containing extra env vars for cronjob nodes
+  ##
+  extraEnvVarsSecret: ""
+  ## @param cronjob.extraVolumes Extra volumes
+  ## Example Use Case: mount ssl certificates when  has tls enabled
+  ## extraVolumes:
+  ##   - name: es-certs
+  ##     secret:
+  ##       defaultMode: 420
+  ##       secretName: es-certs
+  extraVolumes: []
+  ##   - name: es-certs
+  ##     secret:
+  ##       defaultMode: 420
+  ##       secretName: es-certs
+  ## @param cronjob.extraVolumeMounts Mount extra volume(s)
+  ## extraVolumeMounts:
+  ##   - name: es-certs
+  ##     mountPath: /certs
+  ##     readOnly: true
+  extraVolumeMounts: []
+  ##   - name: es-certs
+  ##     mountPath: /certs
+  ##     readOnly: true
+
+  ## @param cronjob.initContainers Extra init containers to add to the  coordinating-only pod(s)
+  ##
+  initContainers: []
+  ## @param cronjob.sidecars Extra sidecar containers to add to the  ingest pod(s)
+  ##
+  sidecars: []
+  ## cronjob RBAC parameters
+  ##
+  rbac:
+    ## @param cronjob.rbac.enabled Enable RBAC resources
+    ##
+    enabled: false
+    ## @param cronjob.rbac.rules Custom RBAC rules to set
+    ## e.g:
+    ## rules:
+    ##   - apiGroups:
+    ##       - ""
+    ##     resources:
+    ##       - pods
+    ##     verbs:
+    ##       - get
+    ##       - list
+    ##
+    rules: []
+  ## cronjob ServiceAccount parameters
+  ##
+  serviceAccount:
+    ## @param cronjob.serviceAccount.create Create a default serviceaccount for  cronjob
+    ##
+    create: false
+    ## @param cronjob.serviceAccount.name Name for  cronjob serviceaccount
+    ## If not set and create is true, a name is generated using the fullname template
+    ##
+    name: ""
+    ## @param cronjob.serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
+    ## Can be set to false if pods using this serviceAccount do not need to use K8s API
+    ##
+    automountServiceAccountToken: false
+    ## @param cronjob.serviceAccount.annotations Additional custom annotations for the ServiceAccount
+    ##
+    annotations: {}
+  ## @param cronjob.psp.create Whether to create a PodSecurityPolicy. WARNING: PodSecurityPolicy is deprecated in Kubernetes v1.21 or later, unavailable in v1.25 or later
+  ##
+  psp:
+    create: false

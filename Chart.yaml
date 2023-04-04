@@ -1,0 +1,25 @@
+annotations:
+  category: Infrastructure
+apiVersion: v2
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    tags:
+      - bitnami-common
+    version: 1.x.x
+description: Collaborative and standardized helm chart for wide adoption - DevOps helm chart
+home: <url>
+icon: https://cdn.wallpapersafari.com/97/22/RGN4uh.jpg
+keywords: 
+  - helm
+  - common
+  - DevOps
+maintainers:
+  - email: <email>
+    name: <name>
+name: <-update-value-for-name-of-release->
+sources:
+  - https://github.com/faraday23/helm-chart-common
+version: 0.5.0
+
+
